@@ -1,0 +1,217 @@
+/* ==========================================================================
+   Shelter Assistance Tracker — Custom overrides
+   Tailwind handles most styling; this file is for small tweaks and
+   accessibility/visual polish that don't fit cleanly into utility classes.
+   ========================================================================== */
+
+:root {
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-500: #2563eb;
+  --brand-600: #1d4ed8;
+  --brand-700: #1e40af;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image:
+    linear-gradient(rgba(246, 242, 234, 0.62), rgba(246, 242, 234, 0.68)),
+    url("assets/background-kitchen.png"),
+    radial-gradient(circle at top right, rgba(225, 214, 192, 0.28), transparent 42%),
+    radial-gradient(circle at bottom left, rgba(165, 118, 84, 0.12), transparent 42%);
+  background-size: cover, cover, auto, auto;
+  background-position: center center, center center, top right, bottom left;
+  background-attachment: fixed, fixed, scroll, scroll;
+}
+
+.film-grain {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.28) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+}
+
+/* ----------------------- Custom scrollbar (subtle) ----------------------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+/* ----------------------- Status pill base style ------------------------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-pill::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.status-pending {
+  background-color: #fef3c7; /* amber-100 */
+  color: #92400e;            /* amber-800 */
+  border-color: #fde68a;     /* amber-200 */
+}
+
+.status-approved {
+  background-color: #d1fae5; /* emerald-100 */
+  color: #047857;            /* emerald-700 */
+  border-color: #a7f3d0;     /* emerald-200 */
+}
+
+.status-fulfilled {
+  background-color: #dbeafe; /* blue-100 */
+  color: #1e40af;            /* blue-800 */
+  border-color: #bfdbfe;     /* blue-200 */
+}
+
+.status-cancelled {
+  background-color: #ffe4e6; /* rose-100 */
+  color: #9f1239;            /* rose-800 */
+  border-color: #fecdd3;     /* rose-200 */
+}
+
+/* ----------------------- Category badge --------------------------------- */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fef7e9;
+  color: #7c5a2d;
+}
+
+/* ----------------------- Table row hover -------------------------------- */
+#requests-tbody tr {
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+#requests-tbody tr:hover {
+  background-color: #fffaf0;
+  transform: translateY(-1px);
+}
+
+/* ----------------------- Inline status select --------------------------- */
+.status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.4rem center;
+  background-size: 1rem 1rem;
+  padding-right: 1.75rem;
+}
+
+/* ----------------------- Toast notifications ---------------------------- */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 16rem;
+  max-width: 22rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -10px rgba(15, 23, 42, 0.25);
+  font-size: 0.875rem;
+  animation: toast-in 200ms ease-out;
+}
+
+.toast.toast-success {
+  border-left: 4px solid #10b981; /* emerald-500 */
+}
+.toast.toast-error {
+  border-left: 4px solid #ef4444; /* red-500 */
+}
+.toast.toast-info {
+  border-left: 4px solid #3a7eb0; /* brand-500 */
+}
+
+.toast.fade-out {
+  animation: toast-out 200ms ease-in forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ----------------------- New row highlight (real-time) ------------------- */
+@keyframes row-flash {
+  0% {
+    background-color: #e2eef7; /* brand-100 */
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.row-flash {
+  animation: row-flash 1.6s ease-out;
+}
+
+/* ----------------------- Reduced motion --------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .toast,
+  .row-flash {
+    animation: none !important;
+  }
+}
+
+/* ----------------------- Focus visibility ------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shelter Assistance Tracker</title>
+    <meta
+      name="description"
+      content="A modern humanitarian operations tracker for shelter teams."
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                500: "#2563eb",
+                700: "#1d4ed8",
+              },
+              warm: {
+                50: "#f6f2ea",
+                100: "#ece4d6",
+                700: "#6d4c41",
+                900: "#2b1d17",
+              },
+              aid: {
+                success: "#10b981",
+                warn: "#f59e0b",
+                urgent: "#e11d48",
+              },
+            },
+            boxShadow: {
+              soft: "0 12px 28px -16px rgba(43, 29, 23, 0.4)",
+            },
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+              serif: ["Playfair Display", "Georgia", "serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+      window.supabaseCreateClient = createClient;
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body class="min-h-screen bg-warm-50 text-slate-800 font-sans antialiased">
+    <header class="sticky top-0 z-40 border-b border-white/10 bg-warm-900/95 text-white backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-4">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12 12 3l9.75 9M4.5 10.5V21h15V10.5" />
+            </svg>
+          </div>
+          <div>
+            <p class="font-serif text-lg leading-none tracking-wide">Shelter Assistance Tracker</p>
+            <nav class="mt-1 hidden items-center gap-4 text-[11px] uppercase tracking-wider text-white/65 md:flex">
+              <span>Dashboard</span>
+              <span>Create New Request</span>
+              <span>Reports</span>
+            </nav>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div id="connection-status" class="hidden items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs sm:flex">
+            <span id="connection-dot" class="h-2.5 w-2.5 animate-pulse rounded-full bg-slate-300"></span>
+            <span id="connection-text">Connecting…</span>
+          </div>
+          <span id="auth-status" class="hidden"></span>
+          <a id="logout-btn" href="login.html" class="rounded-md border border-white/25 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">
+            Logout
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl space-y-8 px-4 py-7 sm:px-6 lg:px-8">
+      <section class="grid gap-4 lg:grid-cols-2">
+        <div class="relative overflow-hidden rounded-xl shadow-soft ring-1 ring-black/5">
+          <img
+            src="https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=1200&q=80"
+            alt="Humanitarian support volunteers and supplies"
+            class="h-64 w-full object-cover sm:h-72"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/45 via-black/20 to-transparent"></div>
+          <div class="film-grain absolute inset-0 opacity-25"></div>
+          <div class="absolute bottom-3 left-3 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/90">Live field coordination</div>
+        </div>
+        <div class="rounded-xl border border-warm-100 bg-white p-6 shadow-soft sm:p-8">
+          <p class="text-xs uppercase tracking-[0.2em] text-warm-700">Mission Brief</p>
+          <h2 class="mt-3 font-serif text-4xl leading-tight text-warm-900 sm:text-6xl">Dashboard Overview.</h2>
+          <p class="mt-4 max-w-xl text-sm leading-relaxed text-slate-600">
+            A living humanitarian command center to intake requests, prioritize urgent needs, and track support distribution with dignity and speed.
+          </p>
+          <p class="mt-5 text-xs text-slate-500">
+            <span id="welcome-user">Welcome back</span>
+            <span class="mx-2 text-slate-300">|</span>
+            <span id="welcome-date">--</span>
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="stats-heading">
+        <h2 id="stats-heading" class="font-serif text-2xl text-warm-900">Current Requests</h2>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <button type="button" data-stat-filter="all" class="group rounded-xl border border-warm-100 bg-white p-4 text-left shadow-soft transition duration-200 hover:-translate-y-0.5 hover:border-warm-700/20">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Total</p>
+            <p id="stat-total" class="mt-2 text-3xl font-semibold text-warm-900">0</p>
+          </button>
+          <button type="button" data-stat-filter="Approved" class="group rounded-xl border border-warm-100 bg-white p-4 text-left shadow-soft transition duration-200 hover:-translate-y-0.5 hover:border-emerald-400/40">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Approved</p>
+            <p id="stat-approved" class="mt-2 text-3xl font-semibold text-emerald-600">0</p>
+          </button>
+          <button type="button" data-stat-filter="Pending" class="group rounded-xl border border-warm-100 bg-white p-4 text-left shadow-soft transition duration-200 hover:-translate-y-0.5 hover:border-amber-400/40">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Pending</p>
+            <p id="stat-pending" class="mt-2 text-3xl font-semibold text-amber-500">0</p>
+          </button>
+          <button type="button" data-stat-filter="Cancelled" class="group rounded-xl border border-warm-100 bg-white p-4 text-left shadow-soft transition duration-200 hover:-translate-y-0.5 hover:border-rose-400/40">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Cancelled</p>
+            <p id="stat-cancelled" class="mt-2 text-3xl font-semibold text-rose-600">0</p>
+          </button>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section aria-labelledby="form-heading" class="rounded-xl border border-warm-100 bg-white p-6 shadow-soft lg:sticky lg:top-24 h-fit">
+          <h3 id="form-heading" class="font-serif text-2xl text-warm-900">Create New Request</h3>
+          <p class="mt-1 text-sm text-slate-500">Intake panel for households needing assistance.</p>
+          <form id="intake-form" class="mt-5 space-y-4" novalidate>
+            <div>
+              <label for="client-name" class="mb-1 block text-sm font-medium text-slate-700">Full Name</label>
+              <input type="text" id="client-name" name="name" required autocomplete="name" placeholder="e.g. Maria Santos" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+            </div>
+            <div>
+              <label for="client-id" class="mb-1 block text-sm font-medium text-slate-700">ID / Phone</label>
+              <input type="text" id="client-id" name="id_or_phone" required placeholder="e.g. +63 917 555 1234" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+            </div>
+            <div>
+              <label for="category" class="mb-1 block text-sm font-medium text-slate-700">Assistance Category</label>
+              <select id="category" name="category" required class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+                <option value="">Select a category…</option>
+                <option value="Housing">Housing</option>
+                <option value="Food">Food</option>
+                <option value="Supplies">Supplies</option>
+                <option value="Medical">Medical</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+              <button type="submit" id="submit-btn" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60">
+                Add Request
+              </button>
+              <button type="reset" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                Clear
+              </button>
+            </div>
+            <p id="form-message" class="hidden text-sm" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section aria-labelledby="dashboard-heading" class="rounded-xl border border-warm-100 bg-white p-6 shadow-soft lg:col-span-2">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 id="dashboard-heading" class="font-serif text-2xl text-warm-900">Live Feed</h3>
+              <p class="text-sm text-slate-500">Search, filter, approve, and fulfill active requests.</p>
+            </div>
+            <div class="relative w-full sm:w-72">
+              <label for="search" class="sr-only">Search requests</label>
+              <input type="search" id="search" placeholder="Search by name, ID, category…" class="w-full rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm shadow-sm focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100" />
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-100">
+            <table class="min-w-full divide-y divide-slate-200 text-sm" aria-describedby="dashboard-heading">
+              <thead class="bg-warm-50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th scope="col" class="px-3 py-3">Name</th>
+                  <th scope="col" class="px-3 py-3">ID / Phone</th>
+                  <th scope="col" class="px-3 py-3">Category</th>
+                  <th scope="col" class="px-3 py-3">Status</th>
+                  <th scope="col" class="hidden px-3 py-3 md:table-cell">Created</th>
+                  <th scope="col" class="px-3 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="requests-tbody" class="divide-y divide-slate-100 bg-white"></tbody>
+            </table>
+            <div id="empty-state" class="hidden py-10 text-center text-sm text-slate-500">
+              No requests yet. Add your first one using the intake panel.
+            </div>
+            <div id="loading-state" class="py-10 text-center text-sm text-slate-500">
+              Loading requests…
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <footer class="pb-8 pt-4 text-center text-xs text-slate-500">
+        Built for humanitarian response teams · Data secured in Supabase
+      </footer>
+    </main>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2" aria-live="polite" aria-atomic="true"></div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
