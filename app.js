@@ -86,6 +86,8 @@ const els = {
   reportTableBody: document.getElementById("report-tbody"),
   reportRefreshBtn: document.getElementById("report-refresh-btn"),
   trendContainer: document.getElementById("trend-container"),
+  clientsTableBody: document.getElementById("clients-tbody"),
+  suppliesTableBody: document.getElementById("supplies-tbody"),
 };
 
 /* -------------------------------------------------------------------------- */
@@ -743,6 +745,67 @@ function renderTrend(trendRows) {
     .join("");
 }
 
+function clientActions(id) {
+  return `
+    <div class="inline-flex items-center gap-1">
+      <button type="button" data-action="edit-client" data-id="${escapeHtml(id)}" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">Edit</button>
+      <button type="button" data-action="delete-client" data-id="${escapeHtml(id)}" class="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100">Delete</button>
+    </div>
+  `;
+}
+
+function supplyActions(id) {
+  return `
+    <div class="inline-flex items-center gap-1">
+      <button type="button" data-action="edit-supply" data-id="${escapeHtml(id)}" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">Edit</button>
+      <button type="button" data-action="delete-supply" data-id="${escapeHtml(id)}" class="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100">Delete</button>
+    </div>
+  `;
+}
+
+function renderClientsTable() {
+  if (!els.clientsTableBody) return;
+  if (!state.clients.length) {
+    els.clientsTableBody.innerHTML =
+      '<tr><td colspan="4" class="px-3 py-3 text-slate-500">No clients yet.</td></tr>';
+    return;
+  }
+  els.clientsTableBody.innerHTML = state.clients
+    .map((c) => {
+      const name = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unknown";
+      return `
+      <tr>
+        <td class="px-3 py-2">${escapeHtml(name)}</td>
+        <td class="px-3 py-2">${escapeHtml(c.contact_number || "—")}</td>
+        <td class="px-3 py-2">${escapeHtml(c.id_number || "—")}</td>
+        <td class="px-3 py-2 text-right">${clientActions(c.id)}</td>
+      </tr>
+    `;
+    })
+    .join("");
+}
+
+function renderSuppliesTable() {
+  if (!els.suppliesTableBody) return;
+  if (!state.supplies.length) {
+    els.suppliesTableBody.innerHTML =
+      '<tr><td colspan="4" class="px-3 py-3 text-slate-500">No supplies yet.</td></tr>';
+    return;
+  }
+  els.suppliesTableBody.innerHTML = state.supplies
+    .map((s) => {
+      return `
+      <tr>
+        <td class="px-3 py-2">${escapeHtml(s.name || "Unknown")}</td>
+        <td class="px-3 py-2">${escapeHtml(s.category || "Other")}</td>
+        <td class="px-3 py-2">${escapeHtml(String(s.quantity_in_stock ?? 0))} ${escapeHtml(s.unit || "pcs")}</td>
+        <td class="px-3 py-2 text-right">${supplyActions(s.id)}</td>
+      </tr>
+    `;
+    })
+    .join("");
+}
+
 function renderAuthState() {
   if (!els.authStatus) return;
   if (!state.user) {
@@ -814,15 +877,24 @@ async function handleLoginSubmit(e) {
 async function handleLogoutClick(e) {
   if (e?.preventDefault) e.preventDefault();
   try {
-    await logout();
+    // Fire the network request but don't await it to prevent hanging
+    logout().catch(err => console.error("Background logout error:", err));
+    
+    // Explicitly clear local storage for supabase to force client-side logout
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     state.requests = [];
-    renderTable();
-    renderAuthState();
-    showToast("Logged out.", "info");
+    state.user = null;
+    state.profile = null;
+    
   } catch (err) {
-    console.error(err);
-    showToast("Session cleared. Redirecting to login...", "info");
+    console.error("Logout error:", err);
   } finally {
+    // Immediately redirect to login
     window.location.href = "login.html";
   }
 }
@@ -946,6 +1018,7 @@ function handleStatCardClick(e) {
   const raw = card.dataset.statFilter || "all";
   const nextStatus = raw === "all" ? "" : raw;
   state.filters.status = state.filters.status === nextStatus ? "" : nextStatus;
+  if (els.requestStatusFilter) els.requestStatusFilter.value = state.filters.status;
   renderStatCardActiveState();
   renderTable();
 }
@@ -1007,6 +1080,97 @@ async function handleSupplyFormSubmit(e) {
   }
 }
 
+async function handleClientTableClick(e) {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!id) return;
+
+  if (btn.dataset.action === "delete-client") {
+    if (!window.confirm("Delete this client record?")) return;
+    try {
+      await deleteClient(id);
+      await refreshMainData();
+      showToast("Client deleted.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Delete client failed.", "error");
+    }
+    return;
+  }
+
+  if (btn.dataset.action === "edit-client") {
+    const current = state.clients.find((c) => c.id === id);
+    if (!current) return;
+    const first = window.prompt("First name:", current.first_name || "");
+    if (first == null) return;
+    const last = window.prompt("Last name:", current.last_name || "");
+    if (last == null) return;
+    const contact = window.prompt("Contact number:", current.contact_number || "");
+    if (contact == null) return;
+    try {
+      await updateClient(id, {
+        first_name: first.trim(),
+        last_name: last.trim(),
+        contact_number: contact.trim() || null,
+      });
+      await refreshMainData();
+      showToast("Client updated.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Update client failed.", "error");
+    }
+  }
+}
+
+async function handleSupplyTableClick(e) {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!id) return;
+
+  if (btn.dataset.action === "delete-supply") {
+    if (!window.confirm("Delete this supply record?")) return;
+    try {
+      await deleteSupply(id);
+      await refreshMainData();
+      showToast("Supply deleted.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Delete supply failed.", "error");
+    }
+    return;
+  }
+
+  if (btn.dataset.action === "edit-supply") {
+    const current = state.supplies.find((s) => s.id === id);
+    if (!current) return;
+    const name = window.prompt("Supply name:", current.name || "");
+    if (name == null) return;
+    const qtyRaw = window.prompt(
+      "Quantity in stock:",
+      String(current.quantity_in_stock ?? 0)
+    );
+    if (qtyRaw == null) return;
+    const qty = Number(qtyRaw);
+    if (!Number.isFinite(qty) || qty < 0) {
+      showToast("Quantity must be a non-negative number.", "error");
+      return;
+    }
+    try {
+      await updateSupply(id, {
+        name: name.trim(),
+        quantity_in_stock: qty,
+      });
+      await refreshMainData();
+      showToast("Supply updated.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Update supply failed.", "error");
+    }
+  }
+}
+
 async function handleReportRefresh() {
   try {
     const rows = await loadMasterReport();
@@ -1031,6 +1195,8 @@ async function refreshDashboardOnly() {
 async function refreshMainData() {
   await Promise.all([listRequests(), listClients(), listSupplies()]);
   renderTable();
+  renderClientsTable();
+  renderSuppliesTable();
   await refreshDashboardOnly();
 }
 
@@ -1080,6 +1246,8 @@ function attachListeners() {
 
   if (els.clientForm) els.clientForm.addEventListener("submit", handleClientFormSubmit);
   if (els.supplyForm) els.supplyForm.addEventListener("submit", handleSupplyFormSubmit);
+  if (els.clientsTableBody) els.clientsTableBody.addEventListener("click", handleClientTableClick);
+  if (els.suppliesTableBody) els.suppliesTableBody.addEventListener("click", handleSupplyTableClick);
   if (els.reportRefreshBtn) els.reportRefreshBtn.addEventListener("click", handleReportRefresh);
   if (els.statCards?.length) {
     for (const card of els.statCards) {
